@@ -23,9 +23,10 @@ class ReplayMemory(object):
         self.agent_history_length = agent_history_length
         self.number_of_channels = number_of_channels
         # Pre-allocate memory 
-        self.actions = np.empty(self.size, dtype=np.int32)
+        self.actions = np.empty(self.size, dtype=np.float32)
         self.rewards = np.empty(self.size, dtype = np.float32)
-        self.observations = np.empty(shape  = (self.size, self.number_of_channels,self.width), dtype = np.float32)
+        self.observations = np.empty(shape  = (self.size, self.number_of_channels,self.width), 
+                                     dtype = np.float32)
         self.terminal_flags =  np.empty(self.size, dtype = np.bool)
         
         # Pre-allocate memory for the states and new_states in a minibatch

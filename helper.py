@@ -45,13 +45,54 @@ import tensorflow as tf
 
 
 
-x = tf.Variable(3.)
-y =tf.Variable(2.0)
+# x = tf.Variable(3.)
+# y =tf.Variable(2.0)
 
-with tf.GradientTape(watch_accessed_variables=False) as tape:
-    tape.watch([x,y])
-    z = x * y 
+# with tf.GradientTape(watch_accessed_variables=False) as tape:
+#     tape.watch([x,y])
+#     z = x * y 
     
-gradients = tape.gradient(z, [x,y])
+# gradients = tape.gradient(z, [x,y])
+
+def orgenize_dims(x):
+    n,h,w,c = x.shape
+    x = tf.reshape(x, shape=(n,h,c,w))
+    x = tf.transpose(x,perm = (0,2,1,3))
+    x = tf.reshape(x, shape = (n, h*w*c))
+    return x 
+
+
+rm = ReplayMemory(capacity = 1000, number_of_channels = 3, agent_history_length = 1)
+
+state = np.array([1] *  3)
+a = 1.0
+done = False
+for i in range(100):
+    next_state = (state + 1) % 4
+    r = (a + 1) % 4
+    a = (a + 1) % 4
+    if a == 4:
+        done = True
+    else:
+        done = False
+    if i ==0:
+        next_state = np.expand_dims(next_state, axis = 1)
+    rm.add_experience(action = a, observation = next_state,
+                      reward = r,
+                      terminal = done )
+
+    state = next_state
+
+s, a,r, s_tag, dones = rm.get_minibatch()
+
+s = orgenize_dims(s).numpy()
+s_tag = orgenize_dims(s_tag).numpy()
+
+
+
+
+
+
+
 
     
