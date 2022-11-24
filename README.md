@@ -8,7 +8,7 @@ Original paper:
 Based 300 games
 
 <img src="images/Histogram.png" width="400" height="350">
-<img src="images/vid1.gif" width="300" height="400">
+<img src="images/vid1.gif" width="400" height="400">
 
 # Training plots
 <!---
