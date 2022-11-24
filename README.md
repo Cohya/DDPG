@@ -2,4 +2,6 @@
 Depp_Deterministic_Policy_Gradient
 
 Original paper: 
-This site was built using [GitHub Pages](https://pages.github.com/).
+[Link](https://arxiv.org/abs/1509.02971).
+
+
