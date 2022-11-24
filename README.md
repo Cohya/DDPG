@@ -7,6 +7,8 @@ Original paper:
 # Results 
 Based 300 games
 
+<img src="images/Histogram.png" width="400" height="350">
+<img src="images/vid.gif" width="300" height="400">
 
 # Training plot
 <!---
@@ -14,13 +16,13 @@ your comment goes here ![IMAGE_DESCRIPTION](plots/Training.PNG)
 and here ![IMAGE_DESCRIPTION](plots/Histogram.png)
 ![Alt Text](plots/gif.gif)
 -->
-<img src="plots/Figure_3.PNG" width="400" height="300">
+<img src="images/Figure_3.PNG" width="400" height="300">
 
 ### Critic Loss plot
-<img src="plots/Figure_1.PNG" width="400" height="300">
+<img src="images/Figure_1.PNG" width="400" height="300">
 
 ### Actor Loss 
-<img src="plots/Figure_2.PNG" width="400" height="300">
+<img src="images/Figure_2.PNG" width="400" height="300">
 
 
 
