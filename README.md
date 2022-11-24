@@ -1,7 +1,7 @@
 # DDPG
 Depp_Deterministic_Policy_Gradient
 
-Tested on **Pendulum-v0**
+Tested on **Pendulum-v0**, Gym library.
 
 Original paper: 
 [Link](https://arxiv.org/abs/1509.02971).
