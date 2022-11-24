@@ -12,10 +12,10 @@ and here ![IMAGE_DESCRIPTION](plots/Histogram.png)
 -->
 <img src="plots/Figure_3.PNG" width="400" height="300">
 
-## Critic Loss plot
+### Critic Loss plot
 <img src="plots/Figure_1.PNG" width="400" height="300">
 
-## Actor Loss 
+### Actor Loss 
 <img src="plots/Figure_2.PNG" width="400" height="300">
 
 # Results 
