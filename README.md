@@ -10,7 +10,7 @@ Based 300 games
 <img src="images/Histogram.png" width="400" height="350">
 <img src="images/vid.gif" width="300" height="400">
 
-# Training plot
+# Training plots
 <!---
 your comment goes here ![IMAGE_DESCRIPTION](plots/Training.PNG)
 and here ![IMAGE_DESCRIPTION](plots/Histogram.png)
