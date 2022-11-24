@@ -1,36 +1,104 @@
 
-
+import pickle 
 import numpy as np 
+import matplotlib.pyplot as plt 
+import os 
+from gym import wrappers
+import matplotlib.cm as cm
 
-class OUActionNoise:
-    def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):
-        self.theta = theta
-        self.mean = mean
-        self.std_dev = std_deviation
-        self.dt = dt
-        self.x_initial = x_initial
-        self.reset()
+def smooting(vec, size):
+    
+    n = len(vec) // size
+    
+    smooted_vec = []
+    
+    for i in range(n):
+        y = vec[ i * size : (i+1) * size]
+        smooted_vec.append(np.mean(y))
+        
+    return smooted_vec
 
-    def __call__(self):
-        # Formula taken from https://www.wikipedia.org/wiki/Ornstein-Uhlenbeck_process.
-        x = (
-            self.x_prev
-            + self.theta * (self.mean - self.x_prev) * self.dt
-            + self.std_dev * np.sqrt(self.dt) * np.random.normal(size=self.mean.shape)
-        )
-        # Store x into x_prev
-        # Makes next noise dependent on current one
-        self.x_prev = x
-        return x
+def test_agent(agent, env):
+    accumulat_r = 0
+    state = env.reset()
+    
+    done = False
+    
+    while not done:
+        state = np.reshape(state, newshape = (1,3)).astype(np.float32)
+        a = agent.get_action(state, noise_scale = False)[0] 
+        next_obs, r, done, _ = env.step(a)
+        
+        accumulat_r += r 
+        state = next_obs
+    return accumulat_r
 
-    def reset(self):
-        if self.x_initial is not None:
-            self.x_prev = self.x_initial
-        else:
-            self.x_prev = np.zeros_like(self.mean)
+
+def record_agent(env, model, videoNum= 0):
+    if not os.path.isdir('videos'):
+        os.makedirs('videos')
+        
+    dire = './videos/' + 'vid_' + str(videoNum)
+    env = wrappers.Monitor(env, dire, force = True)
+
+    obs = env.reset()
+    state = obs 
+    done = False
+    
+    episode_reward = 0
+    print("The agent is playing, please be patient...")
+    
+    while not done:
+        state = np.reshape(state, newshape = (1,3)).astype(np.float32)
+        a = model.get_action(state, noise_scale = False)[0]
+        next_obs, r, done, info = env.step(a)
+        next_obs = np.expand_dims(next_obs, axis = 1).astype(np.float32)
+        
+        state = next_obs
+        episode_reward += r
+        # time.sleep(0.02)
+        
+    print("record video game in folder video %s / " % 'vid_' + str(videoNum), "episode reward: ", episode_reward)
+    return episode_reward
+
+
+def main_statistic(model,env, num_of_games = 300, statistics = True, video= False):
+    
+    model.load_weights(mu_Net_weights_file= 'weights/weights_mu_Net.pk',
+               q_Net_weights_file = 'weights/Weights_q_Net.pk')
+    
+    if statistics :
+        rewards = []
+        for i in range(num_of_games):
+            r = test_agent(model, env)
+            rewards.append(r)
             
+            print("Episode %i: %.f" % (i, r))
             
-# std_dev = 0.2
-# ou_noise = OUActionNoise(mean=np.zeros(1), std_deviation=float(std_dev) * np.ones(1))
+        with open('rewards_stat.pickle', 'wb') as file:
+            pickle.dump(rewards, file)
+        
+        colors = cm.rainbow(np.linspace(0, 1, 20))
+        plt.style.use('dark_background')    
+        
+        fig, ax = plt.subplots()
+        plt.rcParams["font.family"] = "Times New Roman"
+        plt.rcParams['xtick.labelsize']= 12
+        plt.rcParams['ytick.labelsize']= 12
+        N, bins, patches = ax.hist(rewards, bins = 20)
 
-# noise = ou_noise()
+        for i in range(20):
+            patches[i].set_facecolor(colors[i])
+    
+        plt.xlabel('Accumulated Rewards', fontsize= 14)
+        plt.ylabel('#Episodes', fontsize=14)
+        
+    if video:
+        r = 0
+        count = 0
+        while r <= 428:
+            r = record_agent(env, model, videoNum= 'epsilon_0.01_'+"best_game")
+            
+            count += 1
+            
+            print("reward:", r, "Episode:", count)

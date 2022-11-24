@@ -1,8 +1,5 @@
 import tensorflow as tf 
 import numpy as np 
-from Nets import ANN
-from utils import OUActionNoise
-import numpy as np 
 import os 
 import pickle
 
@@ -22,21 +19,18 @@ def copy_weights(main_net, copy_net):
 class DDPG(object):
     def __init__(self, mu_Net, mu_Net_targ, q_Net, q_Net_targ,  replay_memory, action_clip = [], 
                  gamma = 0.99,
-                 decay = 0.995 ):# 0.995
+                 decay = 0.995 ):
         
         #action_dims, observation_dims, args,
         std_dev = 0.2
         self.ou_noise = OUActionNoise(mean=np.zeros(1), std_deviation=float(std_dev) * np.ones(1))
         self.replay_memory = replay_memory
         self.action_clip = action_clip
-        ## mu net which is the Actor net 
-        # self.mu_Net = ANN(input_dims = observation_dims,
-        #                   output_dims = action_dims,
-        #                   hidden_layer_sizes= args.hidden_layer_sizes_mu,
-        #                   last_layer_activation = tf.nn.tanh)# The output activation can be also identity 
+        
+        # Define the orginal nets and their copies
         self.mu_Net = mu_Net
         self.mu_Net_targ = mu_Net_targ
-        self.q_Net = q_Netimport os 
+        self.q_Net = q_Net
         self.q_Net_targ = q_Net_targ
         
         self.gamma = gamma
@@ -52,33 +46,28 @@ class DDPG(object):
         self.q_optimizer = tf.keras.optimizers.Adam(learning_rate = 0.002)
         
       # ""I think we should normelized the observation""  
-    def get_action(self,state, noise_scale):
+    def get_action(self,state, noise_scale = 'OU'):
         # calculate mu, which suppose to be the best action  
         a = self.mu_Net.forward(state)  ## this is the action max of the pendulum 
-        # print("state:", state)        print("state:", state)
-        # input("just press space")
-        # input("just press space")
         # print(state)
         # Add Gaussian noise (during training noise_scale = 0.1 or other value higher than 0)
         # a += tf.random.normal(shape = a.shape) * noise_scale
         
-        ## USe OUAActionNOise
-        r = np.random.rand()
-        if r < 0.001:
-            print("old:", a)
-            
-        a += self.ou_noise()
+        ## USe OUAActionNOise 
+        if noise_scale is not False:
+            if type(noise_scale) == float:
+                a += tf.random.normal(shape = a.shape) * noise_scale
+                
+            elif  noise_scale == 'OU':
+                a += self.ou_noise()
         
-        if r < 0.001:
-            print("new:", a)
-            print("state;", state)
+
         if len(self.action_clip) != 0:
             a = tf.clip_by_value(a, self.action_clip[0], self.action_clip[1])
-        # print(a.numpy())
+
         assert (a[0][0].numpy() <= 2.0),"Oh no! This assertion failed!" 
         assert (a[0][0].numpy() >= -2.0),"Oh no! This assertion failed!" 
-        if r < 0.001:
-            print(a)
+
         return a
     
     def q_targets_fun(self,next_states, rewards, dones):
@@ -95,19 +84,6 @@ class DDPG(object):
                                      + self.gamma 
                                      * np.array((1-dones)).reshape(bz,1)
                                      * q_next)
-        # if True in dones:
-        #     # print(rewards[dones == True])
-        #     print((1-dones)[dones==True] )
-            
-            
-        #     print("q_next:", q_next)
-        #     print("r:", rewards)
-        #     print("q-dones:", 1-dones)
-        #     print("q_targets:", q_targets) 
-        #     print("part2", np.reshape(rewards, newshape=(64,1)) + 
-        #           self.gamma * np.array((1-dones)).reshape(64,1) * q_next)
-        #     input("There is true in doine")
-            
         
         return q_targets
     
@@ -118,17 +94,6 @@ class DDPG(object):
         
         return q 
     
-    # ## or try teh first one
-    # def get_q2(self, states):
-    #     # states = orgenize_dims(states)
-    #     a = self.mu_Net.forward(states)
-    #     if len(self.action_clip) != 0:
-    #          a = tf.clip_by_value(a, self.action_clip[0], self.action_clip[1])
-
-    #     # x = tf.concat((states, a), axis = 1)
-    #     q = self.q_Net.forward(states, a)
-        
-    #     return q 
     
     def q_loss(self, states, next_states, actions, rewards, dones):
         q_targets = self.q_targets_fun(next_states = next_states,
@@ -136,15 +101,12 @@ class DDPG(object):
                                        dones = dones)
         
         q = self.get_q(states = states, a = actions) # option 1 
-        # q = self.get_q2(states = states) # option 2 
-        # print("q_tar:" ,q_targets.shape,"q_real:",  q.shape)
         loss = tf.math.reduce_mean(tf.math.square(q - q_targets))
         
         return loss
     
     def mu_loss(self, states):
         # Here we are tying to maximize the Q(s, mu(s))
-        # states = orgenize_dims(states)
         a = self.mu_Net.forward(states) 
         
         if len(self.action_clip) != 0:
@@ -158,8 +120,8 @@ class DDPG(object):
         
         
     def train_q_net(self,states, next_states, actions, rewards, dones):
-        with tf.GradientTape(watch_accessed_variables = True) as tape:
-            # tape.watch(self.q_Net.trainable_params)
+        with tf.GradientTape(watch_accessed_variables = False) as tape:
+            tape.watch(self.q_Net.trainable_params)
             loss_q = self.q_loss( states, next_states, actions, rewards, dones)
         
         gradients = tape.gradient(loss_q, self.q_Net.trainable_params)
@@ -170,8 +132,8 @@ class DDPG(object):
     
     def train_mu_net(self, states):
         
-        with tf.GradientTape(watch_accessed_variables=True) as tape:
-            # tape.watch(self.mu_Net.trainable_params) # to activate it set wathc to false
+        with tf.GradientTape(watch_accessed_variables=False) as tape:
+            tape.watch(self.mu_Net.trainable_params) # to activate it set wathc to false
             loss_mu = self.mu_loss(states)
             
         gradients = tape.gradient(loss_mu, self.mu_Net.trainable_params)
@@ -191,22 +153,15 @@ class DDPG(object):
         return np.mean(vals)
     
     def update_targets_nets(self):
-        # print(self.check_weights_distance(self.mu_Net.trainable_params, self.mu_Net_targ.trainable_params))
         
         for w_mu, w_mu_target in zip(self.mu_Net.trainable_params, self.mu_Net_targ.trainable_params):
             smoothed_w = self.decay * w_mu_target.numpy() + (1-self.decay) * w_mu.numpy()
             w_mu_target.assign(smoothed_w)
-        # print(self.check_weights_distance(self.mu_Net.trainable_params, self.mu_Net_targ.trainable_params)) 
-        
-        # print("_---------------------------")
-        # print(self.check_weights_distance(self.q_Net.trainable_params, self.q_Net_targ.trainable_params))  
+
         for w_q, w_q_target in zip(self.q_Net.trainable_params, self.q_Net_targ.trainable_params):
             smoothed_w = self.decay * w_q_target.numpy() + (1-self.decay) * w_q.numpy()
             w_q_target.assign(smoothed_w)
             
-        # print(self.check_weights_distance(self.q_Net.trainable_params, self.q_Net_targ.trainable_params)) 
-        # print("-------------------------")
-        
         
    
     def train(self):
@@ -239,10 +194,10 @@ class DDPG(object):
             print("Creating Weights folder")
             os.mkdir('weights')
             
-        with open('weights_mu_Net.pk', 'wb') as file:
+        with open('weights/weights_mu_Net.pk', 'wb') as file:
             pickle.dump(weights_mu_Nets, file)
         
-        with open('Weights_q_Net.pk', 'wb') as file:
+        with open('weights/Weights_q_Net.pk', 'wb') as file:
             pickle.dump(weights_q_Net, file)
             
         
@@ -275,8 +230,33 @@ class DDPG(object):
         
         
             
-        
-    
+class OUActionNoise:
+    def __init__(self, mean, std_deviation, theta=0.15, dt=1e-2, x_initial=None):
+        self.theta = theta
+        self.mean = mean
+        self.std_dev = std_deviation
+        self.dt = dt
+        self.x_initial = x_initial
+        self.reset()
+
+    def __call__(self):
+        # Formula taken from https://www.wikipedia.org/wiki/Ornstein-Uhlenbeck_process.
+        x = (
+            self.x_prev
+            + self.theta * (self.mean - self.x_prev) * self.dt
+            + self.std_dev * np.sqrt(self.dt) * np.random.normal(size=self.mean.shape)
+        )
+        # Store x into x_prev
+        # Makes next noise dependent on current one
+        self.x_prev = x
+        return x
+
+    def reset(self):
+        if self.x_initial is not None:
+            self.x_prev = self.x_initial
+        else:
+            self.x_prev = np.zeros_like(self.mean)
+              
     
         
     
