@@ -1,8 +1,12 @@
 # DDPG
 Depp_Deterministic_Policy_Gradient
-
+tested on **Pendulum-v0**
 Original paper: 
 [Link](https://arxiv.org/abs/1509.02971).
+
+# Results 
+Based 300 games
+
 
 # Training plot
 <!---
@@ -18,8 +22,6 @@ and here ![IMAGE_DESCRIPTION](plots/Histogram.png)
 ### Actor Loss 
 <img src="plots/Figure_2.PNG" width="400" height="300">
 
-# Results 
-Based 300 games
 
 
 
